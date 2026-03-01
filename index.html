@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compliance Hub | Final Build</title>
+    <title>Compliance Hub | PWA Live Sync</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log("SW error", err));
+        }
+    </script>
     
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -140,7 +147,7 @@
         if (newPass) {
             currentPassB64 = btoa(newPass);
             localStorage.setItem('hub_pass', currentPassB64);
-            alert("Password updated for this browser.");
+            alert("Password updated for this device.");
         }
     }
 
@@ -183,7 +190,8 @@
         
         if (error) return;
         
-        feed.innerHTML = ""; // FIX: Clears the area to prevent duplication
+        // BUG FIX: Clears content before rendering new data to prevent duplicates
+        feed.innerHTML = ""; 
         
         const filtered = (updates || []).filter(u => u.title.toLowerCase().includes(searchTerm) || u.body.toLowerCase().includes(searchTerm));
         const FIFTEEN_DAYS = 1296000000;
@@ -193,20 +201,20 @@
 
         if (pinned.length > 0) { html += '<div class="section-label">Active Directives</div>'; pinned.forEach(u => html += generateCard(u, true)); }
         if (history.length > 0) { html += '<div class="section-label">Archive</div>'; history.forEach(u => html += generateCard(u, false)); }
-        feed.innerHTML = html || '<p style="text-align:center; color:#999;">No updates.</p>';
+        feed.innerHTML = html || '<p style="text-align:center; color:#999; margin-top:20px;">No updates found.</p>';
     }
 
     function generateCard(u, isPinned) {
         return `<div class="update-card ${isPinned ? 'pinned' : ''}">
                 <div class="card-header" onclick="this.parentElement.querySelector('.card-body').classList.toggle('active')">
-                    <h2 style="margin:0; font-size:0.95rem;">${isPinned ? '● ' : ''}${u.title}</h2>
+                    <h2 style="margin:0; font-size:0.95rem; font-weight:600;">${isPinned ? '● ' : ''}${u.title}</h2>
                     <span style="font-size:0.7rem; opacity:0.6">${new Date(Number(u.timestamp)).toLocaleDateString()}</span>
                 </div>
                 <div class="card-body ql-editor">
                     ${u.body}
                     <div style="margin-top:15px; border-top:1px solid var(--border); padding-top:10px;">
                         <span class="action-link" onclick="window.print()">Print PDF</span>
-                        ${isCreator ? `<span class="action-link" onclick="loadEdit(${u.id}, \`${u.title}\`, \`${u.body}\`)">Edit</span>
+                        ${isCreator ? `<span class="action-link" onclick="loadEdit(${u.id}, \`${u.title.replace(/'/g, "\\'")}\`, \`${u.body.replace(/'/g, "\\'")}\`)">Edit</span>
                         <span class="action-link" style="color:var(--warning)" onclick="deletePost(${u.id})">Delete</span>` : ''}
                     </div>
                 </div></div>`;
